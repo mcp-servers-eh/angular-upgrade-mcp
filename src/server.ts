@@ -3,13 +3,14 @@ import {
   ListToolsRequestSchema,
   CallToolRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
-import { ProjectAnalysisHandler } from "./handlers/project-analysis.handler";
+import { loadHandlers } from "./utils/load-handlers.js";
 
 export async function createServer() {
 
+  //#region Server
   const server = new Server(
     {
-      name: "angular-upgrade-mcp",
+      name: "angular-upgrade-mcp-server",
       version: "0.1.0",
     },
     {
@@ -18,28 +19,27 @@ export async function createServer() {
       },
     }
   );
+  //#endregion
 
-  const projectAnalysis = new ProjectAnalysisHandler();
+  //#region Handlers
+  const handlers = await loadHandlers();
+  //#endregion
 
-  // List available tools
+  //#region List available tools
   server.setRequestHandler(ListToolsRequestSchema, async () => {
-    return {
-      tools: [
-        projectAnalysis.META_DATA
-      ],
-    };
+    return { tools: handlers.map((h) => h.META_DATA) };
   });
+  //#endregion
 
-  // Handle tool calls
+  //#region Handle tool calls
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
-    const { name } = request.params;
+    const toolName = request.params.name;
+    const handler = handlers.find((h) => h.META_DATA.name === toolName);
 
-    if (name === "angular-project-analysis") {
-      return projectAnalysis.handleProjectAnalysis(request);
-    }
-
-    throw new Error(`Unknown tool: ${request.params.name}`);
+    if (!handler) throw new Error(`Unknown tool: ${toolName}`);
+    return handler.handle(request);
   });
+  //#endregion
 
   return server;
 }

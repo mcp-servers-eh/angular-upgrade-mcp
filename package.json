@@ -2,10 +2,10 @@
   "name": "angular-upgrade-mcp",
   "version": "0.1.0",
   "description": "MCP server to help developers upgrade Angular projects",
-  "main": "dist/index.js",
+  "main": "index.js",
   "type": "module",
   "scripts": {
-    "dev": "tsx src/index.ts",
+    "dev": "tsx index.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js"
   },

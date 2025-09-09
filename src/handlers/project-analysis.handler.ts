@@ -1,32 +1,28 @@
 export class ProjectAnalysisHandler {
 
   META_DATA = {
-    name: "angular-project-analysis",
+    name: "project_analysis",
     description: "Comprehensive Angular project analysis - complete project scanning (package.json, angular.json, tsconfig.json, etc.), current Angular version and all related libraries identification, detection of old or insecure dependencies, and project structure evaluation with common architectural issues assessment",
     inputSchema: {
       type: "object",
-      properties: {
-        projectPath: {
-          type: "string",
-          description: "Path to the Angular project to analyze",
-        },
-      },
-      required: ["projectPath"],
-    },
+      properties: {},
+      required: []
+    }
   };
 
-  async handleProjectAnalysis(request: any) {
-    // const PROJECT_PATH = process.env.PROJECT_PATH;
+  async handle(request: any) {
 
-    // Stub implementation for now
+    const PROJECT_PATH = process.env.PROJECT_PATH;
+
     return {
       content: [
         {
           type: "text",
-          text: `Angular project analysis coming soon 🚀 (project: ${request.params.projectPath})`,
+          text: `Angular project analysis coming soon 🚀, project path: ${PROJECT_PATH}`,
         },
       ],
     };
+    
   }
 
 }

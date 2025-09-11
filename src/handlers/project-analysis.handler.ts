@@ -1,15 +1,22 @@
-import { readFileSync, existsSync, statSync, readdirSync } from 'fs';
+import { existsSync} from 'fs';
 import { join } from 'path';
 import { AnalysisResult } from '../models/analysis-result.interface.js';
 import { PackageJson } from '../models/package-json.interface.js';
-import { AngularJson } from '../models/angular-json.interface.js';
-import { TsConfig } from '../models/ts-config.interface.js';
+import { getLatestVersion } from '../utils/latest-version.js';
 import { execSync } from "child_process";
+import { parseVersion } from '../utils/parse-version.js';
+import { readPackageJson } from '../utils/package-json.js';
+import { extractAngularVersion } from '../utils/extract-angular-version.js';
+import { extractAngularDependencies } from '../utils/extract-angular-dependancies.js';
+import { readAngularJson } from '../utils/angular-json.js';
+import { readTsConfig } from '../utils/ts-config.js';
+import { isAngularProject } from '../utils/is-angular-project.js';
+import { analyzeProjectStructure } from '../utils/analyze-project-structure.js';
 
 export class ProjectAnalysisHandler {
 
   META_DATA = {
-    name: "project_analysis",
+    name: "project_analyze",
     description: "Comprehensive Angular project analysis - complete project scanning (package.json, angular.json, tsconfig.json, etc.), current Angular version and all related libraries identification, detection of old or insecure dependencies, and project structure evaluation with common architectural issues assessment",
     inputSchema: {
       type: "object",
@@ -62,122 +69,50 @@ export class ProjectAnalysisHandler {
     };
 
     // Check if it's an Angular project
-    result.isAngularProject = this.isAngularProject(projectPath);
+    result.isAngularProject = isAngularProject(projectPath);
     
     // Analyze package.json
-    const packageJson = this.readPackageJson(projectPath);
+    const packageJson = readPackageJson(projectPath);
     if (packageJson) {
       result.projectStructure.hasPackageJson = true;
       result.configurationAnalysis.packageConfig = packageJson;
       
       // Find Angular version and dependencies
-      result.angularVersion = this.extractAngularVersion(packageJson);
-      result.angularDependencies = this.extractAngularDependencies(packageJson);
+      result.angularVersion = extractAngularVersion(packageJson);
+      result.angularDependencies = extractAngularDependencies(packageJson);
       
       // Check for outdated dependencies
-      result.outdatedDependencies = this.checkOutdatedDependencies(packageJson);
+      result.outdatedDependencies = await this.checkOutdatedDependencies(packageJson);
       
       // Check for security issues
       result.securityIssues = this.checkSecurityIssues(projectPath);
     }
 
     // Analyze angular.json
-    const angularJson = this.readAngularJson(projectPath);
+    const angularJson = readAngularJson(projectPath);
     if (angularJson) {
       result.projectStructure.hasAngularJson = true;
       result.configurationAnalysis.angularConfig = angularJson;
     }
 
     // Analyze tsconfig.json
-    const tsConfig = this.readTsConfig(projectPath);
+    const tsConfig = readTsConfig(projectPath);
     if (tsConfig) {
       result.projectStructure.hasTsConfig = true;
       result.configurationAnalysis.tsConfig = tsConfig;
     }
 
     // Analyze project structure
-    result.projectStructure.srcStructure = this.analyzeProjectStructure(projectPath);
-    result.projectStructure.architecturalIssues = this.detectArchitecturalIssues(projectPath, result);
+    result.projectStructure.srcStructure = analyzeProjectStructure(projectPath);
+    result.projectStructure.architecturalIssues = await this.detectArchitecturalIssues(projectPath, result);
 
     // Generate recommendations
-    result.recommendations = this.generateRecommendations(result);
+    result.recommendations = await this.generateRecommendations(result);
 
     return result;
   }
 
-  private isAngularProject(projectPath: string): boolean {
-    const packageJsonPath = join(projectPath, 'package.json');
-    if (!existsSync(packageJsonPath)) return false;
-    
-    try {
-      const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8')) as PackageJson;
-      return !!(packageJson.dependencies?.['@angular/core'] || packageJson.devDependencies?.['@angular/core']);
-    } catch {
-      return false;
-    }
-  }
-
-  private readPackageJson(projectPath: string): PackageJson | null {
-    const packageJsonPath = join(projectPath, 'package.json');
-    if (!existsSync(packageJsonPath)) return null;
-    
-    try {
-      return JSON.parse(readFileSync(packageJsonPath, 'utf8')) as PackageJson;
-    } catch {
-      return null;
-    }
-  }
-
-  private readAngularJson(projectPath: string): AngularJson | null {
-    const angularJsonPath = join(projectPath, 'angular.json');
-    if (!existsSync(angularJsonPath)) return null;
-    
-    try {
-      return JSON.parse(readFileSync(angularJsonPath, 'utf8')) as AngularJson;
-    } catch {
-      return null;
-    }
-  }
-
-  private readTsConfig(projectPath: string): TsConfig | null {
-    const tsConfigPath = join(projectPath, 'tsconfig.json');
-    if (!existsSync(tsConfigPath)) return null;
-    
-    try {
-      return JSON.parse(readFileSync(tsConfigPath, 'utf8')) as TsConfig;
-    } catch {
-      return null;
-    }
-  }
-
-  private extractAngularVersion(packageJson: PackageJson): string | undefined {
-    const allDeps = {
-      ...packageJson.dependencies,
-      ...packageJson.devDependencies,
-      ...packageJson.peerDependencies
-    };
-    
-    return allDeps['@angular/core'] || allDeps['@angular/cli'];
-  }
-
-  private extractAngularDependencies(packageJson: PackageJson): Record<string, string> {
-    const allDeps = {
-      ...packageJson.dependencies,
-      ...packageJson.devDependencies,
-      ...packageJson.peerDependencies
-    };
-    
-    const angularDeps: Record<string, string> = {};
-    for (const [name, version] of Object.entries(allDeps)) {
-      if (name.startsWith('@angular/')) {
-        angularDeps[name] = version;
-      }
-    }
-    
-    return angularDeps;
-  }
-
-  private checkOutdatedDependencies(packageJson: PackageJson): Array<{name: string, current: string, latest?: string}> {
+  private async checkOutdatedDependencies(packageJson: PackageJson): Promise<Array<{name: string, current: string, latest?: string}>> {
     const outdated: Array<{name: string, current: string, latest?: string}> = [];
     const allDeps = {
       ...packageJson.dependencies,
@@ -186,10 +121,8 @@ export class ProjectAnalysisHandler {
   
     for (const [name, version] of Object.entries(allDeps)) {
       try {
-        // Get latest version from npm registry
-        const latest = execSync(`npm view ${name} version`, { stdio: ["pipe", "pipe", "ignore"] })
-          .toString()
-          .trim();
+        // Get latest version from npm registry using utility
+        const latest = await getLatestVersion(name);
   
         if (latest && latest !== version.replace(/^[^\d]*/, "")) {
           outdated.push({ name, current: version, latest });
@@ -222,35 +155,7 @@ export class ProjectAnalysisHandler {
     return issues;
   }
 
-  private analyzeProjectStructure(projectPath: string): string[] {
-    const structure: string[] = [];
-    
-    try {
-      const srcPath = join(projectPath, 'src');
-      if (existsSync(srcPath) && statSync(srcPath).isDirectory()) {
-        const scanDirectory = (dir: string, prefix: string = '') => {
-          const items = readdirSync(dir);
-          for (const item of items) {
-            const itemPath = join(dir, item);
-            const stat = statSync(itemPath);
-            if (stat.isDirectory()) {
-              structure.push(`${prefix}${item}/`);
-              scanDirectory(itemPath, `${prefix}${item}/`);
-            } else {
-              structure.push(`${prefix}${item}`);
-            }
-          }
-        };
-        scanDirectory(srcPath);
-      }
-    } catch (error) {
-      structure.push('Error reading project structure');
-    }
-
-    return structure;
-  }
-
-  private detectArchitecturalIssues(projectPath: string, analysis: AnalysisResult): string[] {
+  private async detectArchitecturalIssues(projectPath: string, analysis: AnalysisResult): Promise<string[]> {
     const issues: string[] = [];
 
     // Check for missing angular.json
@@ -265,9 +170,16 @@ export class ProjectAnalysisHandler {
 
     // Check for outdated Angular version
     if (analysis.angularVersion) {
-      const version = this.parseVersion(analysis.angularVersion);
-      if (version && version.major < 15) {
-        issues.push('Angular version is significantly outdated (consider upgrading to v15+)');
+      const version = parseVersion(analysis.angularVersion);
+      try {
+        const latestAngularVersion = await getLatestVersion('@angular/core');
+        const latestVersion = parseVersion(latestAngularVersion);
+        if (version && latestVersion && version.major < latestVersion.major - 2) {
+          issues.push(`Angular version is significantly outdated (consider upgrading to v${latestVersion.major}+)`);
+        }
+      } catch (error) {
+        // Fallback: just note that version checking failed
+        issues.push('Unable to check Angular version against latest - consider upgrading to latest version');
       }
     }
 
@@ -286,7 +198,7 @@ export class ProjectAnalysisHandler {
     return issues;
   }
 
-  private generateRecommendations(analysis: AnalysisResult): string[] {
+  private async generateRecommendations(analysis: AnalysisResult): Promise<string[]> {
     const recommendations: string[] = [];
 
     if (analysis.outdatedDependencies.length > 0) {
@@ -302,10 +214,16 @@ export class ProjectAnalysisHandler {
     }
 
     if (analysis.angularVersion) {
-      const version = this.parseVersion(analysis.angularVersion);
-      const latestVersion = this.parseVersion(execSync(`npm view @angular/core version`, { stdio: ["pipe", "pipe", "ignore"] }).toString().trim());
-      if (version && latestVersion && version.major < latestVersion.major) {
-        recommendations.push(`Consider upgrading to Angular ${latestVersion.major} for latest features and performance improvements`);
+      const version = parseVersion(analysis.angularVersion);
+      try {
+        const latestAngularVersion = await getLatestVersion('@angular/core');
+        const latestVersion = parseVersion(latestAngularVersion);
+        if (version && latestVersion && version.major < latestVersion.major) {
+          recommendations.push(`Consider upgrading to Angular ${latestVersion.major} for latest features and performance improvements`);
+        }
+      } catch (error) {
+        // Fallback recommendation if version fetch fails
+        recommendations.push('Consider upgrading to the latest Angular version for latest features and performance improvements');
       }
     }
 
@@ -314,18 +232,6 @@ export class ProjectAnalysisHandler {
     }
 
     return recommendations;
-  }
-
-  private parseVersion(version: string): {major: number, minor: number, patch: number} | null {
-    const match = version.replace(/[^0-9.]/g, '').match(/^(\d+)\.(\d+)\.(\d+)/);
-    if (match) {
-      return {
-        major: parseInt(match[1]),
-        minor: parseInt(match[2]),
-        patch: parseInt(match[3])
-      };
-    }
-    return null;
   }
 
   private formatAnalysisReport(analysis: AnalysisResult): string {

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { migrateAssets, MigrateAssetsOptions } from "./migrate_assets";
+import { migrateAssets, MigrateAssetsOptions } from "./migrate_assets.js";
 
 export const migrateAssetsTool = {
   name: "migrate_assets",

@@ -4,6 +4,7 @@ import { getPeerDeps } from "./src/utils/npm.js";
 import { run } from "./src/utils/run.js";
 import { migrateAssets } from "./src/tools/migrate_assets.js";
 import { ensureInsideAllowed } from "./src/utils/fs.js";
+import { migrateComponent } from "./src/tools/migrate_component.js";
 import path from "path";
 
 async function main() {
@@ -29,6 +30,24 @@ async function main() {
 
     
     // console.log(JSON.stringify(result, null, 2));
+
+
+    const res = await migrateComponent({
+        oldProjectPath: "D:/Aptar/Product Regulatory/Code/frontend",
+        newProjectPath: "D:/Aptar/Product Regulatory/Code/frontend-mcp",
+        componentTsPath: "src/app/modules/welcome/components/welcome-menu/welcome-menu.component.ts",
+        copyCoLocatedAssets: true,
+        makeStandalone: false,
+        route: {
+          path: "welcome-menu",
+          routerConfigPath: "src/app/app.routes.ts",
+          lazy: false
+        },
+      
+        dryRun: false
+      });
+      console.log(res);
+      
 }
 
 main();

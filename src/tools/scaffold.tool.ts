@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { scaffoldProject, ScaffoldProjectOptions } from "./scaffold_project";
+import { scaffoldProject, ScaffoldProjectOptions } from "./scaffold_project.js";
 
 export const scaffoldTool = {
   name: "scaffold_project",

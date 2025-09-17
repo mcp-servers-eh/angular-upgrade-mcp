@@ -1,24 +1,26 @@
 {
-  "name": "angular-upgrade-mcp",
-  "version": "0.1.0",
-  "description": "MCP server to help developers upgrade Angular projects",
-  "main": "dist/index.js",
-  "type": "module",
-  "scripts": {
-    "dev": "tsx src/index.ts",
-    "build": "tsc -p tsconfig.json",
-    "start": "node dist/index.js"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.17.5"
-  },
-  "devDependencies": {
-    "@types/json-schema": "^7.0.15",
-    "@types/node": "^24.3.1",
-    "tsx": "^4.20.5",
-    "typescript": "^5.9.2"
-  }
+    "name": "mcp-angular-migrator",
+    "version": "0.1.0",
+    "type": "module",
+    "private": true,
+    "scripts": {
+        "build": "tsc -p tsconfig.json",
+        "start": "node dist/index.js",
+        "dev": "tsx src/index.ts",
+        "test": "tsx playground.ts"
+    },
+    "dependencies": {
+        "@modelcontextprotocol/sdk": "^1.18.0",
+        "fs-extra": "^11.3.2",
+        "globby": "^14.0.2",
+        "semver": "^7.6.3",
+        "zod": "^3.23.8"
+    },
+    "devDependencies": {
+        "@types/fs-extra": "^11.0.4",
+        "@types/node": "^24.5.0",
+        "@types/semver": "^7.7.1",
+        "tsx": "^4.19.2",
+        "typescript": "^5.6.3"
+    }
 }

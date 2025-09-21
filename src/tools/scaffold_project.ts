@@ -118,11 +118,14 @@ async function enforcePeerCompatibility(depsIn: PackageMap, devDepsIn: PackageMa
             if (!have) {
                 if (!optional) {
                     const latest = await getLatestVersion(peerName);
-                    const version = latest || peerRange;
-                    deps[peerName] = version;
+                    if (!latest) {
+                        console.warn(`Warning: Could not get latest version for ${peerName}, skipping peer dependency`);
+                        continue;
+                    }
+                    deps[peerName] = latest;
                     upgraded.push({
                         name: peerName,
-                        to: version,
+                        to: latest,
                         reason: `added missing peer for ${pkg}`,
                     });
                 }
@@ -145,8 +148,11 @@ async function enforcePeerCompatibility(depsIn: PackageMap, devDepsIn: PackageMa
             if (!ok) {
                 const fromSpec = have;
                 const latest = await getLatestVersion(peerName);
-                const version = latest || peerRange;
-                deps[peerName] = version;
+                if (!latest) {
+                    console.warn(`Warning: Could not get latest version for ${peerName}, keeping existing version ${fromSpec}`);
+                    continue;
+                }
+                deps[peerName] = latest;
                 // Remove from devDeps if it exists there
                 if (peerName in devDeps) {
                     delete devDeps[peerName];
@@ -154,7 +160,7 @@ async function enforcePeerCompatibility(depsIn: PackageMap, devDepsIn: PackageMa
                 upgraded.push({
                     name: peerName,
                     from: fromSpec,
-                    to: version,
+                    to: latest,
                     reason: `align to peer range of ${pkg}`,
                 });
             }

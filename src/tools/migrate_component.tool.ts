@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { migrateComponent, MigrateComponentArgs } from "./migrate_component.js";
 
 export const migrateComponentTool = {
@@ -5,28 +6,32 @@ export const migrateComponentTool = {
   title: "Migrate a single Angular component",
   description: "Migrate a single Angular component from an old project to a new project, with optional copying of co-located assets and linking to a Route.",
   inputSchema: {
-    type: "object",
-    properties: {
-      projectPath: { type: "string" },
-      newProjectPath: { type: "string" },
-      componentTsPath: { type: "string" },
-      targetAppRoot: { type: "string", optional: true },
-      copyCoLocatedAssets: { type: "boolean", optional: true },
-      makeStandalone: { type: "boolean", optional: true },
-      route: { type: "object", properties: { path: { type: "string" }, routerConfigPath: { type: "string" }, lazy: { type: "boolean", optional: true } }, optional: true },
-      dryRun: { type: "boolean", optional: true }
-    },
-    required: ["projectPath", "newProjectPath", "componentTsPath"],
-  }
+    componentTsPath: z.string().describe("Path to the component .ts file to migrate"),
+    targetAppRoot: z.string().optional().describe("Target app root (optional, default is src/app)"),
+    copyCoLocatedAssets: z.boolean().optional().default(false).describe("If true, copies co-located assets"),
+    makeStandalone: z.boolean().optional().default(false).describe("If true, makes the component standalone"),
+    route: z.object({ path: z.string(), routerConfigPath: z.string(), lazy: z.boolean().optional() }).optional().describe("If provided, wires the component to a Route"),
+    dryRun: z.boolean().optional().default(false).describe("If true, shows what it would do without copying"),
+  } as z.ZodRawShape
 };
 
 export async function handleMigrateComponent(request: any) {
 
+  const projectPath = process.env.PROJECT_PATH;
+  const newProjectPath = process.env.NEW_PROJECT_PATH;
+
+  if (!projectPath || !newProjectPath) {
+      return {
+          content: [{ type: "text", text: "PROJECT_PATH or NEW_PROJECT_PATH is not set in the environment." }],
+          isError: true
+      };
+  }
+
   const args = request.params?.arguments || request.arguments || request;
 
   const opts: MigrateComponentArgs = {
-    projectPath: process.env.PROJECT_PATH!,
-    newProjectPath: process.env.NEW_PROJECT_PATH!,
+    projectPath: projectPath,
+    newProjectPath: newProjectPath,
     componentTsPath: args.componentTsPath,
     targetAppRoot: args.targetAppRoot,
     copyCoLocatedAssets: args.copyCoLocatedAssets,

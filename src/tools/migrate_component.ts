@@ -45,6 +45,7 @@ export async function migrateComponent(args: MigrateComponentArgs): Promise<Migr
 
   // normalize paths
   const compTsOldAbs = path.resolve(oldRoot, args.componentTsPath.replace(/^[\\/]+/, ""));
+
   if (!fs.existsSync(compTsOldAbs)) {
     return { from: oldRoot, to: newRoot, createdDirs, copiedFiles, updatedFiles, skipped, notes, errors: [{ file: args.componentTsPath, error: "component .ts not found" }] };
   }

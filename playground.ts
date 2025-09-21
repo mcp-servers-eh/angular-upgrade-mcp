@@ -15,12 +15,12 @@ async function main() {
     //  const createRun = await run("npx", createArgs, newAbs);
     // // const result = await run("npx", ["@angular/cli", "new", "frontend-mcp", "--skip-install", "--routing=false", "--style=scss"], "D:/Aptar/Product Regulatory/Code");
 
-    const result = await scaffoldProject({
-        oldProjectPath: "D:/Aptar/Product Regulatory/Code/frontend",
-        newProjectPath: "D:/Aptar/Product Regulatory/Code/frontend-mcp",
-        upgradeStrategy: "all"
-    });
-    console.log(JSON.stringify(result, null, 2));
+    // const result = await scaffoldProject({
+    //     oldProjectPath: "D:/Aptar/Product Regulatory/Code/frontend",
+    //     newProjectPath: "D:/Aptar/Product Regulatory/Code/frontend-mcp",
+    //     upgradeStrategy: "all"
+    // });
+    // console.log(JSON.stringify(result, null, 2));
 
     // const result = await migrateAssets({
     //     oldProjectPath: "D:/Aptar/Product Regulatory/Code/frontend",
@@ -33,7 +33,7 @@ async function main() {
 
 
     // const res = await migrateComponent({
-    //     oldProjectPath: "D:/Aptar/Product Regulatory/Code/frontend",
+    //     projectPath: "D:/Aptar/Product Regulatory/Code/frontend",
     //     newProjectPath: "D:/Aptar/Product Regulatory/Code/frontend-mcp",
     //     componentTsPath: "src/app/modules/welcome/components/welcome-menu/welcome-menu.component.ts",
     //     copyCoLocatedAssets: true,
@@ -44,8 +44,9 @@ async function main() {
     //       lazy: false
     //     },
       
-    //     dryRun: false
+    //     dryRun: true
     //   });
+      
     //   console.log(res);
       
 }

@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { migrateAssets, MigrateAssetsOptions } from "./migrate_assets.js";
 
 export const migrateAssetsTool = {
@@ -5,25 +6,29 @@ export const migrateAssetsTool = {
   title: "Migrate Angular static assets (src/*)",
   description: "Copies static assets and files (assets, environments, favicon, manifest, robots.txt, …) from an old project to a new project and updates angular.json.",
   inputSchema: {
-    type: "object",
-    properties: {
-      projectPath: { type: "string" },
-      newProjectPath: { type: "string" },
-      include: { type: "array", items: { type: "string" }, optional: true },
-      exclude: { type: "array", items: { type: "string" }, optional: true },
-      dryRun: { type: "boolean", optional: true },
-    },
-    required: ["projectPath", "newProjectPath"],
-  }
+    include: z.array(z.string()).optional().describe("File patterns to include"),
+    exclude: z.array(z.string()).optional().describe("File patterns to exclude"),
+    dryRun: z.boolean().optional().default(false).describe("If true, shows what it would do without copying"),
+  } as z.ZodRawShape
 };
 
 export async function handleMigrateAssets(request: any) {
 
+  const projectPath = process.env.PROJECT_PATH;
+  const newProjectPath = process.env.NEW_PROJECT_PATH;
+
+  if (!projectPath || !newProjectPath) {
+      return {
+          content: [{ type: "text", text: "PROJECT_PATH or NEW_PROJECT_PATH is not set in the environment." }],
+          isError: true
+      };
+  }
+
   const args = request.params?.arguments || request.arguments || request;
 
   const opts: MigrateAssetsOptions = {
-    projectPath: process.env.PROJECT_PATH!,
-    newProjectPath: process.env.NEW_PROJECT_PATH!,
+    projectPath: projectPath,
+    newProjectPath: newProjectPath,
     include: args.include,
     exclude: args.exclude,
     dryRun: args.dryRun,

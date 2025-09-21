@@ -5,7 +5,7 @@ import { globby } from "globby";
 import { ensureInsideAllowed } from "../utils/fs.js";
 
 export type MigrateAssetsOptions = {
-    oldProjectPath: string;   // Path to the old project (repository root containing src)
+    projectPath: string;   // Path to the old project (repository root containing src)
     newProjectPath: string;   // Path to the new project created with scaffold_project
     include?: string[];       // Additional globs if needed
     exclude?: string[];       // Globs for exclusion
@@ -62,7 +62,7 @@ export async function migrateAssets(opts: MigrateAssetsOptions): Promise<Migrate
     const copied: string[] = [];
     const skipped: string[] = [];
 
-    const oldRoot = ensureInsideAllowed(opts.oldProjectPath);
+    const oldRoot = ensureInsideAllowed(opts.projectPath);
     const newRoot = ensureInsideAllowed(opts.newProjectPath);
 
     const include = (opts.include && opts.include.length ? [...opts.include, ...DEFAULT_INCLUDE] : DEFAULT_INCLUDE);

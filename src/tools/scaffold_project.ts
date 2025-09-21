@@ -46,9 +46,11 @@ function isAngularPackage(name: string): boolean {
 }
 
 function detectCliSpecifier(targetAngularVersion?: string): string {
-    if (!targetAngularVersion) return "@angular/cli@latest";
+    if (!targetAngularVersion || targetAngularVersion === "latest") return "@angular/cli@latest";
+
     const major = semver.coerce(targetAngularVersion)?.major;
     if (!major) return "@angular/cli@latest";
+    
     return `@angular/cli@${major}`; // pin to same major
 }
 
@@ -58,7 +60,7 @@ async function computeTargetVersion(name: string, from: string | undefined, opts
     to?: string; 
     reason: string
 }> {
-    const upgradeAll = (opts.upgradeStrategy ?? "angularOnly") === "all";
+    const upgradeAll = opts.upgradeStrategy === "all";
     const targetNg = opts.targetAngularVersion;
 
     if (isAngularPackage(name)) {
@@ -115,10 +117,12 @@ async function enforcePeerCompatibility(depsIn: PackageMap, devDepsIn: PackageMa
 
             if (!have) {
                 if (!optional) {
-                    deps[peerName] = peerRange;
+                    const latest = await getLatestVersion(peerName);
+                    const version = latest || peerRange;
+                    deps[peerName] = version;
                     upgraded.push({
                         name: peerName,
-                        to: peerRange,
+                        to: version,
                         reason: `added missing peer for ${pkg}`,
                     });
                 }
@@ -140,12 +144,17 @@ async function enforcePeerCompatibility(depsIn: PackageMap, devDepsIn: PackageMa
 
             if (!ok) {
                 const fromSpec = have;
-                if (peerName in deps) deps[peerName] = peerRange;
-                else devDeps[peerName] = peerRange;
+                const latest = await getLatestVersion(peerName);
+                const version = latest || peerRange;
+                deps[peerName] = version;
+                // Remove from devDeps if it exists there
+                if (peerName in devDeps) {
+                    delete devDeps[peerName];
+                }
                 upgraded.push({
                     name: peerName,
                     from: fromSpec,
-                    to: peerRange,
+                    to: version,
                     reason: `align to peer range of ${pkg}`,
                 });
             }

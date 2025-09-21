@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { AnalyzeOptions, analyzeProject } from "./analyze_project.js";
 
 // Exported tool metadata + handler (index.ts will import this and register it)
@@ -6,45 +7,31 @@ export const analyzeTool = {
     title: "Analyze Angular project (JSON report)",
     description: "Comprehensive Angular project analysis - complete project scanning (package.json, angular.json, tsconfig.json, etc.), current Angular version and all related libraries identification, detection of old or insecure dependencies, and project structure evaluation with common architectural issues assessment.",
     inputSchema: {
-        type: "object",
-        properties: {
-            projectPath: {
-                type: "string",
-                description: "Path to the Angular project to analyze (optional, defaults to PROJECT_PATH env var or current directory)"
-            },
-            maxPackages: {
-                type: "number",
-                description: "Maximum number of packages to analyze (optional, defaults to 150)"
-            },
-            concurrency: {
-                type: "number",
-                description: "Maximum number of concurrent operations (optional, defaults to 6)"
-            },
-            includeDev: {
-                type: "boolean",
-                description: "Include development dependencies (optional, defaults to true)"
-            },
-            modulesTop: {
-                type: "number",
-                description: "Maximum number of modules to analyze (optional, defaults to 10)"
-            }
-        },
-        required: [
-            "projectPath"
-        ]
-    }
+        maxPackages: z.number().optional().default(150).describe("Maximum number of packages to analyze (optional, default is 150)"),
+        concurrency: z.number().optional().default(6).describe("Maximum number of concurrent operations (optional, default is 6)"),
+        includeDev: z.boolean().optional().default(true).describe("Include development dependencies (optional, default is true)"),
+        modulesTop: z.number().optional().default(10).describe("Maximum number of modules to analyze (optional, default is 10)"),
+    } as z.ZodRawShape
 };
 
-export async function handleAnalyze(request: any) {
+export async function handleAnalyzeProject(request: any) {
+    
+    const projectPath = process.env.PROJECT_PATH;
+    if (!projectPath) {
+        return {
+            content: [{ type: "text", text: "PROJECT_PATH is not set in the environment." }],
+            isError: true
+        };
+    }
 
     const args = request.params?.arguments || request.arguments || request;
 
     const opts: AnalyzeOptions = {
-        projectPath: process.env.PROJECT_PATH!,
-        maxPackages: args.maxPackages || 150,
-        concurrency: args.concurrency || 6,
-        includeDev: args.includeDev || true,
-        modulesTop: args.modulesTop || 10
+        projectPath: projectPath,
+        maxPackages: args.maxPackages ?? 150,
+        concurrency: args.concurrency ?? 6,
+        includeDev: args.includeDev ?? true,
+        modulesTop: args.modulesTop ?? 10
     }
 
     const out = await analyzeProject(opts);

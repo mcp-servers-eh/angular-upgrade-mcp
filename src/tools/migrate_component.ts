@@ -4,7 +4,7 @@ import fse from "fs-extra";
 import { globby } from "globby";
 
 export type MigrateComponentArgs = {
-  oldProjectPath: string;
+  projectPath: string;
   newProjectPath: string;
   componentTsPath: string;
   targetAppRoot?: string;
@@ -39,7 +39,7 @@ export async function migrateComponent(args: MigrateComponentArgs): Promise<Migr
   const createdDirs: string[] = [];
   const skipped: string[] = [];
 
-  const oldRoot = path.resolve(args.oldProjectPath);
+  const oldRoot = path.resolve(args.projectPath);
   const newRoot = path.resolve(args.newProjectPath);
   const isDry = !!args.dryRun;
 
